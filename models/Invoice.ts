@@ -132,6 +132,7 @@ export default class Invoice extends BaseModel {
             this.paid_at ||
             this.creation_date ||
             this.timestamp ||
+            this.settled_at ||
             this.settle_date ||
             0
         );
@@ -163,6 +164,7 @@ export default class Invoice extends BaseModel {
         return (
             this.status === 'paid' ||
             this.state === 'settled' ||
+            !!this.settled_at ||
             this.settled ||
             this.ispaid ||
             false

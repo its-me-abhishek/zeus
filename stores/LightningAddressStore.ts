@@ -724,7 +724,8 @@ export default class LightningAddressStore {
         hash: string,
         amount_msat: number,
         comment?: string,
-        skipStatus?: boolean
+        skipStatus?: boolean,
+        localNotification?: boolean
     ) => {
         return await this.getPreimageMap().then(async (map) => {
             const preimage = map[hash];
@@ -737,7 +738,9 @@ export default class LightningAddressStore {
 
             const fireLocalNotification = () => {
                 const title = 'ZEUS Pay payment received!';
-                const body = `Payment of ${value_commas} sats automatically accepted`;
+                const body = `Payment of ${value_commas} ${
+                    value_commas === '1' ? 'sat' : 'sats'
+                } automatically accepted`;
                 if (Platform.OS === 'android') {
                     // @ts-ignore:next-line
                     Notifications.postLocalNotification({
@@ -773,7 +776,7 @@ export default class LightningAddressStore {
                             result.payment_request,
                             preimageNotFound
                         ).then((success) => {
-                            if (success?.success === true)
+                            if (success?.success === true && localNotification)
                                 fireLocalNotification();
                             if (!skipStatus) this.status(true);
                             return;
@@ -792,7 +795,10 @@ export default class LightningAddressStore {
                                     result.payment_request,
                                     preimageNotFound
                                 ).then((success) => {
-                                    if (success?.success === true)
+                                    if (
+                                        success?.success === true &&
+                                        localNotification
+                                    )
                                         fireLocalNotification();
                                     if (!skipStatus) this.status(true);
                                     return;
@@ -806,7 +812,7 @@ export default class LightningAddressStore {
                             undefined,
                             preimageNotFound
                         ).then((success) => {
-                            if (success?.success === true)
+                            if (success?.success === true && localNotification)
                                 fireLocalNotification();
                             if (!skipStatus) this.status(true);
                             return;
@@ -817,7 +823,7 @@ export default class LightningAddressStore {
     };
 
     @action
-    public redeemAllOpenPayments = async () => {
+    public redeemAllOpenPayments = async (localNotification?: boolean) => {
         this.redeemingAll = true;
         const attestationLevel = this.settingsStore?.settings?.lightningAddress
             ?.automaticallyAcceptAttestationLevel
@@ -832,7 +838,8 @@ export default class LightningAddressStore {
                     item.hash,
                     item.amount_msat,
                     item.comment,
-                    true
+                    true,
+                    localNotification
                 );
                 return;
             }
@@ -848,7 +855,8 @@ export default class LightningAddressStore {
                             item.hash,
                             item.amount_msat,
                             item.comment,
-                            true
+                            true,
+                            localNotification
                         );
                     })
                     .catch((e) => {
@@ -904,7 +912,9 @@ export default class LightningAddressStore {
                             this.lookupPreimageAndRedeem(
                                 hash,
                                 amount_msat,
-                                comment
+                                comment,
+                                false,
+                                true
                             );
                         } else {
                             this.lookupAttestations(hash, amount_msat)
@@ -919,7 +929,9 @@ export default class LightningAddressStore {
                                     this.lookupPreimageAndRedeem(
                                         hash,
                                         amount_msat,
-                                        comment
+                                        comment,
+                                        false,
+                                        true
                                     );
                                 })
                                 .catch((e) =>
@@ -946,7 +958,7 @@ export default class LightningAddressStore {
                 runInAction(() => {
                     this.readyToAutomaticallyAccept = true;
                     if (this.socket && this.socket.connected) return;
-                    this.redeemAllOpenPayments();
+                    this.redeemAllOpenPayments(true);
                     this.subscribeUpdates();
                 });
             }
